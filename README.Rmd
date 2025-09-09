@@ -15,40 +15,23 @@ knitr::opts_chunk$set(
 
 # ducklake
 
-<!-- badges: start -->
-<!-- badges: end -->
-
-The goal of ducklake is to ...
+ducklake is an R package which complements the existing toolkits in the [duckdb](https://r.duckdb.org/index.html) and [duckplyr](https://duckplyr.tidyverse.org/index.html) packages, in order to support the new [DuckLake](https://ducklake.select/docs/stable/duckdb/introduction.html) ecosystem.
 
 ## Installation
 
-You can install the development version of ducklake like so:
+Install the development version of ducklake with
 
 ``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+pak::pak("tgerke/ducklake")
 ```
 
-## Example
-
-This is a basic example which shows you how to solve a common problem:
+## Create a local duckdb lakehouse
 
 ```{r example}
 library(ducklake)
-## basic example code
+
+# install the ducklake extension to duckdb 
+# requires that you already have DuckDB v1.3.0 or higher
+install_ducklake()
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
