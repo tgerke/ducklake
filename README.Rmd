@@ -33,5 +33,33 @@ library(ducklake)
 # install the ducklake extension to duckdb 
 # requires that you already have DuckDB v1.3.0 or higher
 install_ducklake()
+
+# set up a temporary directory to demonstrate use
+temp_dir <- tempdir()
+# haha Jenny Bryan is going to set my computer on fire
+setwd(temp_dir)
+
+# create the ducklake
+attach_ducklake("my_ducklake")
+# show that we have ducklake files
+list.files()
+
+# create a table using the Netherlands train traffic dataset 
+create_table("nl_train_stations", "https://blobs.duckdb.org/nl_stations.csv")
+# show that we now have a .files directory
+list.files()
+# main/ is where the parquet files go
+list.files("my_ducklake.ducklake.files/main/")
+
+# connect to the ducklake
+con <- DBI::dbConnect(
+  duckdb::duckdb(
+    dbdir = paste0(temp_dir, "/my_ducklake.ducklake"),
+    read_only = FALSE
+  )
+)
+
+# list tables in the metadata store
+DBI::dbListTables(con)
 ```
 
