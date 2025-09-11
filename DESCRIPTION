@@ -11,5 +11,7 @@ RoxygenNote: 7.3.2
 Imports: 
     cli,
     DBI,
+    dbplyr,
+    dplyr,
     duckdb,
     duckplyr

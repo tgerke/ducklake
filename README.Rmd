@@ -68,68 +68,27 @@ This next section is dev/WIP!
 ```{r}
 library(duckplyr)
 
-# try to get to the nl_train_stations table
-duckplyr::db_exec("USE my_ducklake;")
-query_result <- DBI::dbGetQuery(con, "SELECT * FROM ducklake_table WHERE table_name = 'nl_train_stations';")
-query_result
-duckplyr::as_duckdb_tibble(query_result)
+# Find the Parquet file path for our table
+train_stations_path <- get_table_path("nl_train_stations", con)
+train_stations_path
 
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_schema WHERE schema_id = 0;")
-# this is still just metadata
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_column WHERE table_id = 1;")
+nl_train_stations <- read_parquet_duckdb(train_stations_path)
 
-# there doesn't seem to be a direct way to reference the nl_train_stations table with existing duckplyr resources
-# I believe this is because of the nested/heirarchical nature of ducklake
-# So, get the data path and file name
-data_path <- DBI::dbGetQuery(con, "SELECT value FROM ducklake_metadata WHERE key = 'data_path'")$value
-train_data <- DBI::dbGetQuery(con, "SELECT * FROM ducklake_data_file WHERE table_id = 1;")
-file_name <- train_data$path
-full_path <- paste0(data_path, "main/nl_train_stations/", file_name)
-
-# Now try to read with the full path
-train_stations <- DBI::dbGetQuery(con, sprintf("SELECT * FROM parquet_scan('%s')", full_path))
-
-# Convert to duckplyr tibble
-nl_train_stations <- duckplyr::as_duckdb_tibble(train_stations)
-nl_train_stations
-
-# First make sure we're in the right schema
-duckplyr::db_exec("USE my_ducklake;")
-
-# Show current value
+# row we want to edit
 nl_train_stations |> filter(code == "ASB")
-
-# Make the update using duckplyr syntax
-nl_train_stations_new <- nl_train_stations |> 
+nl_train_stations_new <- nl_train_stations |>
   mutate(
     name_long = case_when(
       code == "ASB" ~ "Johan Cruijff ArenA",
       .default = name_long
     )
-  ) |> 
-  compute()
-
-# Check the change
+  )
 nl_train_stations_new |> filter(code == "ASB")
 
-# Register the modified table back to DuckLake
-duckdb::duckdb_register(con, "temp_stations", nl_train_stations_new)
-duckplyr::db_exec("CREATE OR REPLACE TABLE my_ducklake.nl_train_stations AS SELECT * FROM temp_stations;")
+compute_parquet(nl_train_stations_new, train_stations_path)
 
-# Check the snapshots after the update
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id;")
-
-# Look at the changes between snapshots
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot_changes WHERE snapshot_id = 2;")
-
-# Look at the data files and their snapshots
-DBI::dbGetQuery(con, "
-  SELECT d.*, s.snapshot_time 
-  FROM ducklake_data_file d 
-  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id 
-  WHERE d.table_id = 1 
-  ORDER BY d.begin_snapshot;
-")
-
+# it worked, but i doubt the snapshots and other ducklake infra picked this up
+nl_train_stations <- read_parquet_duckdb(train_stations_path)
+nl_train_stations |> filter(code == "ASB")
 ```
 

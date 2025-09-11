@@ -2,4 +2,6 @@
 
 export(attach_ducklake)
 export(create_table)
+export(get_table_path)
 export(install_ducklake)
+export(update_table)
