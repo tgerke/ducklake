@@ -90,5 +90,10 @@ compute_parquet(nl_train_stations_new, train_stations_path)
 # it worked, but i doubt the snapshots and other ducklake infra picked this up
 nl_train_stations <- read_parquet_duckdb(train_stations_path)
 nl_train_stations |> filter(code == "ASB")
+
+# check if ducklake noticed the changes
+snapshots <- DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id DESC;")
+snapshots
+
 ```
 

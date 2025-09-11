@@ -101,7 +101,7 @@ library(duckplyr)
 # Find the Parquet file path for our table
 train_stations_path <- get_table_path("nl_train_stations", con)
 train_stations_path
-#> [1] "my_ducklake.ducklake.files/main/nl_train_stations/ducklake-01993ac7-006e-72a6-9729-9911ba413435.parquet"
+#> [1] "my_ducklake.ducklake.files/main/nl_train_stations/ducklake-01993ad2-c319-75a4-be9a-a943a0062267.parquet"
 
 nl_train_stations <- read_parquet_duckdb(train_stations_path)
 
@@ -151,4 +151,11 @@ nl_train_stations |> filter(code == "ASB")
 #>   <dbl> <chr>   <dbl> <chr>      <chr>         <chr>         <chr> <chr>   <chr>
 #> 1    41 ASB   8400074 Bijlmer A  Bijlmer ArenA Johan Cruijf… amst… NL      knoo…
 #> # ℹ 2 more variables: geo_lat <dbl>, geo_lng <dbl>
+
+# check if ducklake noticed the changes
+snapshots <- DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id DESC;")
+snapshots
+#>   snapshot_id       snapshot_time schema_version next_catalog_id next_file_id
+#> 1           1 2025-09-11 22:08:34              1               2            1
+#> 2           0 2025-09-11 22:08:34              0               1            0
 ```
