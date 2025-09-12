@@ -66,34 +66,82 @@ duckdb::dbListTables(con)
 
 This next section is dev/WIP! 
 ```{r}
-library(duckplyr)
+library(dplyr)
 
 # Find the Parquet file path for our table
 train_stations_path <- get_table_path("nl_train_stations", con)
 train_stations_path
 
-nl_train_stations <- read_parquet_duckdb(train_stations_path)
-
-# row we want to edit
-nl_train_stations |> filter(code == "ASB")
-nl_train_stations_new <- nl_train_stations |>
+# avoid duckplyr, and instead get the SQL which can be ported into UPDATE stmts
+train_file <- duckdb::tbl_file(con, train_stations_path)
+# Create and execute the update
+train_query <- train_file |> 
   mutate(
     name_long = case_when(
       code == "ASB" ~ "Johan Cruijff ArenA",
       .default = name_long
     )
-  )
-nl_train_stations_new |> filter(code == "ASB")
+  ) 
 
-compute_parquet(nl_train_stations_new, train_stations_path)
+# here's the query we're going to send to ducklake
+train_query |>
+  update_table("nl_train_stations")
 
-# it worked, but i doubt the snapshots and other ducklake infra picked this up
-nl_train_stations <- read_parquet_duckdb(train_stations_path)
-nl_train_stations |> filter(code == "ASB")
+train_query |>
+  update_table("nl_train_stations") |>
+  duckplyr::db_exec()
 
-# check if ducklake noticed the changes
-snapshots <- DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id DESC;")
-snapshots
+# metadata
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_table WHERE table_name = 'nl_train_stations';")
+
+# schema info
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_schema WHERE schema_id = 0;")
+
+# snapshots
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id;")
+
+# data files with snapshots
+DBI::dbGetQuery(con, "
+  SELECT 
+    d.*,
+    s.snapshot_time,
+    t.table_name,
+    t.path as table_path
+  FROM ducklake_data_file d
+  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id
+  JOIN ducklake_table t ON d.table_id = t.table_id
+  WHERE t.table_name = 'nl_train_stations'
+  ORDER BY d.begin_snapshot DESC;
+")
+
+# delete files with snapshots
+DBI::dbGetQuery(con, "
+  SELECT 
+    d.*,
+    s.snapshot_time,
+    t.table_name
+  FROM ducklake_delete_file d
+  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id
+  JOIN ducklake_table t ON d.table_id = t.table_id
+  WHERE t.table_name = 'nl_train_stations'
+  ORDER BY d.begin_snapshot DESC;
+")
+
+# snapshot changes
+DBI::dbGetQuery(con, "
+  SELECT 
+    c.*,
+    s.snapshot_time
+  FROM ducklake_snapshot_changes c
+  JOIN ducklake_snapshot s USING (snapshot_id)
+  ORDER BY snapshot_id DESC;
+")
+
+# metadata path
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_metadata WHERE key = 'data_path';")
+
+# data files
+list.files("my_ducklake.ducklake.files/main/nl_train_stations/", full.names = TRUE)
 
 ```
 

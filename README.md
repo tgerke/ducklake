@@ -85,8 +85,7 @@ duckdb::dbListTables(con)
 This next section is dev/WIP!
 
 ``` r
-library(duckplyr)
-#> Loading required package: dplyr
+library(dplyr)
 #> 
 #> Attaching package: 'dplyr'
 #> The following objects are masked from 'package:stats':
@@ -95,67 +94,117 @@ library(duckplyr)
 #> The following objects are masked from 'package:base':
 #> 
 #>     intersect, setdiff, setequal, union
-#> ✔ Overwriting dplyr methods with duckplyr methods.
-#> ℹ Turn off with `duckplyr::methods_restore()`.
 
 # Find the Parquet file path for our table
 train_stations_path <- get_table_path("nl_train_stations", con)
 train_stations_path
-#> [1] "my_ducklake.ducklake.files/main/nl_train_stations/ducklake-01993ad2-c319-75a4-be9a-a943a0062267.parquet"
+#> [1] "my_ducklake.ducklake.files/main/nl_train_stations/ducklake-01993f31-b51a-73e8-8375-f6cffbda67f3.parquet"
 
-nl_train_stations <- read_parquet_duckdb(train_stations_path)
-
-# row we want to edit
-nl_train_stations |> filter(code == "ASB")
-#> # A duckplyr data frame: 11 variables
-#>      id code      uic name_short name_medium   name_long     slug  country type 
-#>   <dbl> <chr>   <dbl> <chr>      <chr>         <chr>         <chr> <chr>   <chr>
-#> 1    41 ASB   8400074 Bijlmer A  Bijlmer ArenA Amsterdam Bi… amst… NL      knoo…
-#> # ℹ 2 more variables: geo_lat <dbl>, geo_lng <dbl>
-nl_train_stations_new <- nl_train_stations |>
+# avoid duckplyr, and instead get the SQL which can be ported into UPDATE stmts
+train_file <- duckdb::tbl_file(con, train_stations_path)
+# Create and execute the update
+train_query <- train_file |> 
   mutate(
     name_long = case_when(
       code == "ASB" ~ "Johan Cruijff ArenA",
       .default = name_long
     )
-  )
-nl_train_stations_new |> filter(code == "ASB")
-#> # A duckplyr data frame: 11 variables
-#>      id code      uic name_short name_medium   name_long     slug  country type 
-#>   <dbl> <chr>   <dbl> <chr>      <chr>         <chr>         <chr> <chr>   <chr>
-#> 1    41 ASB   8400074 Bijlmer A  Bijlmer ArenA Johan Cruijf… amst… NL      knoo…
-#> # ℹ 2 more variables: geo_lat <dbl>, geo_lng <dbl>
+  ) 
 
-compute_parquet(nl_train_stations_new, train_stations_path)
-#> # A duckplyr data frame: 11 variables
-#>       id code      uic name_short name_medium      name_long slug  country type 
-#>    <dbl> <chr>   <dbl> <chr>      <chr>            <chr>     <chr> <chr>   <chr>
-#>  1   266 HT    8400319 Den Bosch  's-Hertogenbosch 's-Herto… s-he… NL      knoo…
-#>  2   269 HTO   8400320 Dn Bosch O 's-Hertogenb. O. 's-Herto… s-he… NL      stop…
-#>  3   227 HDE   8400388 't Harde   't Harde         't Harde  t-ha… NL      stop…
-#>  4     8 AHBF  8015345 Aachen     Aachen Hbf       Aachen H… aach… D       knoo…
-#>  5   818 AW    8015199 Aachen W   Aachen West      Aachen W… aach… D       stop…
-#>  6    51 ATN   8400045 Aalten     Aalten           Aalten    aalt… NL      stop…
-#>  7     5 AC    8400047 Abcoude    Abcoude          Abcoude   abco… NL      stop…
-#>  8   550 EAHS  8021123 Ahaus      Ahaus            Ahaus     ahaus D       stop…
-#>  9    12 AIME  8774176 Aime-la-Pl Aime-la-Plagne   Aime-la-… aime… F       inte…
-#> 10   819 ACDG  8727149 Airport dG Airport deGaulle Airport … airp… F       knoo…
-#> # ℹ more rows
-#> # ℹ 2 more variables: geo_lat <dbl>, geo_lng <dbl>
+# here's the query we're going to send to ducklake
+train_query |>
+  update_table("nl_train_stations")
+#> [1] "UPDATE my_ducklake.nl_train_stations SET id = id, code = code, uic = uic, name_short = name_short, name_medium = name_medium, name_long = CASE WHEN (code = 'ASB') THEN 'Johan Cruijff ArenA' ELSE name_long END, slug = slug, country = country, \"type\" = \"type\", geo_lat = geo_lat, geo_lng = geo_lng"
 
-# it worked, but i doubt the snapshots and other ducklake infra picked this up
-nl_train_stations <- read_parquet_duckdb(train_stations_path)
-nl_train_stations |> filter(code == "ASB")
-#> # A duckplyr data frame: 11 variables
-#>      id code      uic name_short name_medium   name_long     slug  country type 
-#>   <dbl> <chr>   <dbl> <chr>      <chr>         <chr>         <chr> <chr>   <chr>
-#> 1    41 ASB   8400074 Bijlmer A  Bijlmer ArenA Johan Cruijf… amst… NL      knoo…
-#> # ℹ 2 more variables: geo_lat <dbl>, geo_lng <dbl>
+train_query |>
+  update_table("nl_train_stations") |>
+  duckplyr::db_exec()
 
-# check if ducklake noticed the changes
-snapshots <- DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id DESC;")
-snapshots
+# metadata
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_table WHERE table_name = 'nl_train_stations';")
+#>   table_id                           table_uuid begin_snapshot end_snapshot
+#> 1        1 01993f31-b519-772a-8c5d-b2c9066b77c1              1           NA
+#>   schema_id        table_name               path path_is_relative
+#> 1         0 nl_train_stations nl_train_stations/             TRUE
+
+# schema info
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_schema WHERE schema_id = 0;")
+#>   schema_id                          schema_uuid begin_snapshot end_snapshot
+#> 1         0 9eb734f5-8767-490b-ab32-46b13bf26626              0           NA
+#>   schema_name  path path_is_relative
+#> 1        main main/             TRUE
+
+# snapshots
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id;")
 #>   snapshot_id       snapshot_time schema_version next_catalog_id next_file_id
-#> 1           1 2025-09-11 22:08:34              1               2            1
-#> 2           0 2025-09-11 22:08:34              0               1            0
+#> 1           0 2025-09-12 18:30:45              0               1            0
+#> 2           1 2025-09-12 18:30:46              1               2            1
+
+# data files with snapshots
+DBI::dbGetQuery(con, "
+  SELECT 
+    d.*,
+    s.snapshot_time,
+    t.table_name,
+    t.path as table_path
+  FROM ducklake_data_file d
+  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id
+  JOIN ducklake_table t ON d.table_id = t.table_id
+  WHERE t.table_name = 'nl_train_stations'
+  ORDER BY d.begin_snapshot DESC;
+")
+#>   data_file_id table_id begin_snapshot end_snapshot file_order
+#> 1            0        1              1           NA         NA
+#>                                                    path path_is_relative
+#> 1 ducklake-01993f31-b51a-73e8-8375-f6cffbda67f3.parquet             TRUE
+#>   file_format record_count file_size_bytes footer_size row_id_start
+#> 1     parquet          578           59856        1340            0
+#>   partition_id encryption_key partial_file_info mapping_id       snapshot_time
+#> 1           NA           <NA>              <NA>         NA 2025-09-12 18:30:46
+#>          table_name         table_path
+#> 1 nl_train_stations nl_train_stations/
+
+# delete files with snapshots
+DBI::dbGetQuery(con, "
+  SELECT 
+    d.*,
+    s.snapshot_time,
+    t.table_name
+  FROM ducklake_delete_file d
+  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id
+  JOIN ducklake_table t ON d.table_id = t.table_id
+  WHERE t.table_name = 'nl_train_stations'
+  ORDER BY d.begin_snapshot DESC;
+")
+#>  [1] delete_file_id   table_id         begin_snapshot   end_snapshot    
+#>  [5] data_file_id     path             path_is_relative format          
+#>  [9] delete_count     file_size_bytes  footer_size      encryption_key  
+#> [13] snapshot_time    table_name      
+#> <0 rows> (or 0-length row.names)
+
+# snapshot changes
+DBI::dbGetQuery(con, "
+  SELECT 
+    c.*,
+    s.snapshot_time
+  FROM ducklake_snapshot_changes c
+  JOIN ducklake_snapshot s USING (snapshot_id)
+  ORDER BY snapshot_id DESC;
+")
+#>   snapshot_id                                                   changes_made
+#> 1           1 created_table:"main"."nl_train_stations",inserted_into_table:1
+#> 2           0                                          created_schema:"main"
+#>         snapshot_time
+#> 1 2025-09-12 18:30:46
+#> 2 2025-09-12 18:30:45
+
+# metadata path
+DBI::dbGetQuery(con, "SELECT * FROM ducklake_metadata WHERE key = 'data_path';")
+#>         key                       value scope scope_id
+#> 1 data_path my_ducklake.ducklake.files/  <NA>       NA
+
+# data files
+list.files("my_ducklake.ducklake.files/main/nl_train_stations/", full.names = TRUE)
+#> [1] "my_ducklake.ducklake.files/main/nl_train_stations//ducklake-01993f31-b51a-73e8-8375-f6cffbda67f3.parquet"
+#> [2] "my_ducklake.ducklake.files/main/nl_train_stations//ducklake-01993f31-b5d5-744c-a4ab-74cd33de6195.parquet"
 ```
