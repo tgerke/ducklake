@@ -65,6 +65,17 @@ dplyr::rows_update(
   unmatched = "ignore"
 )
 
+# update using ducklake::update_table
+dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+   dplyr::mutate(
+     name_long = case_when(
+       code == "ASB" ~ "Johan Cruijff ArenA",
+       .default = name_long
+     )
+   ) |>
+  update_table("nl_train_stations") |>
+  duckplyr::db_exec()
+
 # view snapshots
 dplyr::tbl(
   duckplyr:::get_default_duckdb_connection(), 
@@ -79,5 +90,5 @@ dplyr::tbl(
 suppressMessages(library(duckplyr))
 
 read_sql_duckdb("FROM nl_train_stations") |> 
-  filter(uic == 8400319)
+  filter(uic == 8400319 | code == "ASB")
 ```
