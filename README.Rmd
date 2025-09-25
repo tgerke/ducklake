@@ -50,98 +50,34 @@ create_table("nl_train_stations", "https://blobs.duckdb.org/nl_stations.csv")
 # show that we now have a .files directory
 list.files()
 # main/ is where the parquet files go
-list.files("my_ducklake.ducklake.files/main/")
+list.files("my_ducklake.ducklake.files/main/nl_train_stations")
 
-# connect to the ducklake
-con <- duckdb::dbConnect(
-  duckdb::duckdb(
-    dbdir = paste0(temp_dir, "/my_ducklake.ducklake"),
-    read_only = FALSE
-  )
+# update the first row
+dplyr::rows_update(
+  dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations"),
+  data.frame(
+    uic = 8400319,
+    name_short = "NEW"
+  ),
+  by = "uic",
+  copy = TRUE,
+  in_place = TRUE,
+  unmatched = "ignore"
 )
 
-# list tables in the metadata store
-duckdb::dbListTables(con)
+# view snapshots
+dplyr::tbl(
+  duckplyr:::get_default_duckdb_connection(), 
+  "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
+)
+dplyr::tbl(
+  duckplyr:::get_default_duckdb_connection(), 
+  "__ducklake_metadata_my_ducklake.ducklake_snapshot"
+)
+
+# check that the change is persisted
+suppressMessages(library(duckplyr))
+
+read_sql_duckdb("FROM nl_train_stations") |> 
+  filter(uic == 8400319)
 ```
-
-This next section is dev/WIP! 
-```{r}
-library(dplyr)
-
-# Find the Parquet file path for our table
-train_stations_path <- get_table_path("nl_train_stations", con)
-train_stations_path
-
-# avoid duckplyr, and instead get the SQL which can be ported into UPDATE stmts
-train_file <- duckdb::tbl_file(con, train_stations_path)
-# Create and execute the update
-train_query <- train_file |> 
-  mutate(
-    name_long = case_when(
-      code == "ASB" ~ "Johan Cruijff ArenA",
-      .default = name_long
-    )
-  ) 
-
-# here's the query we're going to send to ducklake
-train_query |>
-  update_table("nl_train_stations")
-
-train_query |>
-  update_table("nl_train_stations") |>
-  duckplyr::db_exec()
-
-# metadata
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_table WHERE table_name = 'nl_train_stations';")
-
-# schema info
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_schema WHERE schema_id = 0;")
-
-# snapshots
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_snapshot ORDER BY snapshot_id;")
-
-# data files with snapshots
-DBI::dbGetQuery(con, "
-  SELECT 
-    d.*,
-    s.snapshot_time,
-    t.table_name,
-    t.path as table_path
-  FROM ducklake_data_file d
-  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id
-  JOIN ducklake_table t ON d.table_id = t.table_id
-  WHERE t.table_name = 'nl_train_stations'
-  ORDER BY d.begin_snapshot DESC;
-")
-
-# delete files with snapshots
-DBI::dbGetQuery(con, "
-  SELECT 
-    d.*,
-    s.snapshot_time,
-    t.table_name
-  FROM ducklake_delete_file d
-  JOIN ducklake_snapshot s ON d.begin_snapshot = s.snapshot_id
-  JOIN ducklake_table t ON d.table_id = t.table_id
-  WHERE t.table_name = 'nl_train_stations'
-  ORDER BY d.begin_snapshot DESC;
-")
-
-# snapshot changes
-DBI::dbGetQuery(con, "
-  SELECT 
-    c.*,
-    s.snapshot_time
-  FROM ducklake_snapshot_changes c
-  JOIN ducklake_snapshot s USING (snapshot_id)
-  ORDER BY snapshot_id DESC;
-")
-
-# metadata path
-DBI::dbGetQuery(con, "SELECT * FROM ducklake_metadata WHERE key = 'data_path';")
-
-# data files
-list.files("my_ducklake.ducklake.files/main/nl_train_stations/", full.names = TRUE)
-
-```
-
