@@ -2,7 +2,7 @@
 % Please edit documentation in R/update_table.R
 \name{update_table}
 \alias{update_table}
-\title{Convert a dplyr SELECT query to a DuckLake UPDATE statement}
+\title{Convert a dplyr query to a DuckLake UPDATE or DELETE statement}
 \usage{
 update_table(query, table_name, ducklake_name = "my_ducklake")
 }
@@ -14,22 +14,38 @@ update_table(query, table_name, ducklake_name = "my_ducklake")
 \item{ducklake_name}{The name of the DuckLake database, defaults to "my_ducklake"}
 }
 \value{
-A string containing the DuckLake UPDATE statement
+A string containing the DuckLake UPDATE or DELETE statement
 }
 \description{
-Convert a dplyr SELECT query to a DuckLake UPDATE statement
+Convert a dplyr query to a DuckLake UPDATE or DELETE statement
+}
+\details{
+This function automatically determines the operation type:
+\itemize{
+\item Filter-only queries (no mutations) generate DELETE statements
+\item Queries with mutations generate UPDATE statements
+\item Combined filter + mutate queries generate UPDATE statements with WHERE clauses
+}
 }
 \examples{
 \dontrun{
-# Create a dplyr query
+# Delete rows (filter-only)
 train_file |>
-  mutate(
-    name_long = case_when(
-      code == "ASB" ~ "Johan Cruijff ArenA",
-      .default = name_long
-    )
-  ) |>
-  update_table("nl_train_stations", ducklake_name = "my_ducklake") |>
+  filter(code == "ASB") |>
+  update_table("nl_train_stations") |>
+  duckplyr::db_exec()
+
+# Update rows (with mutations)
+train_file |>
+  mutate(name_long = "New Name") |>
+  update_table("nl_train_stations") |>
+  duckplyr::db_exec()
+
+# Update specific rows (filter + mutate)
+train_file |>
+  filter(code == "ASB") |>
+  mutate(name_long = "New Name") |>
+  update_table("nl_train_stations") |>
   duckplyr::db_exec()
 }
 }
