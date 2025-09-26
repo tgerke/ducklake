@@ -50,7 +50,7 @@ list.files()
 #> [3] "my_ducklake.ducklake.files" "my_ducklake.ducklake.wal"
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
-#> [1] "ducklake-0199825b-5a88-7a52-82f7-ae902b89dc0b.parquet"
+#> [1] "ducklake-019987ba-2a56-7c53-902e-2e14a7fc9ed4.parquet"
 
 # update the first row
 dplyr::rows_update(
@@ -65,17 +65,22 @@ dplyr::rows_update(
   unmatched = "ignore"
 )
 
-# update using ducklake::update_table
+# test mutate using ducklake::ducklake_exec
 dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
-   dplyr::mutate(
-     name_long = case_when(
-       code == "ASB" ~ "Johan Cruijff ArenA",
-       .default = name_long
-     )
-   ) |>
-  update_table("nl_train_stations") |>
-  duckplyr::db_exec()
+  dplyr::mutate(
+    name_long = dplyr::case_when(
+      code == "ASB" ~ "Johan Cruijff ArenA",
+      .default = name_long
+    )
+  ) |>
+  ducklake_exec("nl_train_stations")
 #> [1] 578
+
+# test filter using ducklake::ducklake_exec
+dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+  dplyr::filter(uic == 8400319 | code == "ASB") |>
+  ducklake_exec("nl_train_stations")
+#> [1] 576
 
 # view snapshots
 dplyr::tbl(
@@ -83,31 +88,32 @@ dplyr::tbl(
   "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
 )
 #> # Source:   SQL [?? x 2]
-#> # Database: DuckDB v1.3.2 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmpx5b2iD/duckplyr/duckplyr1d404c67a504.duckdb]
+#> # Database: DuckDB v1.3.2 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpQSowMH/duckplyr/duckplyrcc4d438df712.duckdb]
 #>   snapshot_id changes_made                                                      
 #>         <dbl> <chr>                                                             
 #> 1           0 "created_schema:\"main\""                                         
 #> 2           1 "created_table:\"main\".\"nl_train_stations\",inserted_into_table…
 #> 3           2 "inserted_into_table:1,deleted_from_table:1"                      
-#> 4           3 "inserted_into_table:1,deleted_from_table:1"
+#> 4           3 "inserted_into_table:1,deleted_from_table:1"                      
+#> 5           4 "deleted_from_table:1"
 dplyr::tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot"
 )
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB v1.3.2 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmpx5b2iD/duckplyr/duckplyr1d404c67a504.duckdb]
+#> # Database: DuckDB v1.3.2 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpQSowMH/duckplyr/duckplyrcc4d438df712.duckdb]
 #>   snapshot_id snapshot_time       schema_version next_catalog_id next_file_id
 #>         <dbl> <dttm>                       <dbl>           <dbl>        <dbl>
-#> 1           0 2025-09-25 19:30:48              0               1            0
-#> 2           1 2025-09-25 19:30:48              1               2            1
-#> 3           2 2025-09-25 19:30:49              1               2            3
-#> 4           3 2025-09-25 19:30:49              1               2            4
+#> 1           0 2025-09-26 20:32:27              0               1            0
+#> 2           1 2025-09-26 20:32:28              1               2            1
+#> 3           2 2025-09-26 20:32:28              1               2            3
+#> 4           3 2025-09-26 20:32:28              1               2            4
+#> 5           4 2025-09-26 20:32:28              1               2            5
 
 # check that the change is persisted
 suppressMessages(library(duckplyr))
 
-read_sql_duckdb("FROM nl_train_stations") |> 
-  filter(uic == 8400319 | code == "ASB")
+duckplyr::read_sql_duckdb("FROM nl_train_stations") 
 #> # A duckplyr data frame: 11 variables
 #>      id code      uic name_short name_medium      name_long  slug  country type 
 #>   <dbl> <chr>   <dbl> <chr>      <chr>            <chr>      <chr> <chr>   <chr>

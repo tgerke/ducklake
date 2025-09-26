@@ -2,34 +2,20 @@
 % Please edit documentation in R/update_table.R
 \name{update_table}
 \alias{update_table}
-\title{Convert a dplyr SELECT query to a DuckLake UPDATE statement}
+\title{Convert a dplyr query to DuckLake SQL operations}
 \usage{
-update_table(query, table_name, ducklake_name = "my_ducklake")
+update_table(.data, table_name, .quiet = FALSE)
 }
 \arguments{
-\item{query}{A dplyr query object that can be passed to show_query()}
+\item{.data}{A dplyr query object (tbl_lazy)}
 
-\item{table_name}{The name of the table to update}
+\item{table_name}{Table name (required when using update_table)}
 
-\item{ducklake_name}{The name of the DuckLake database, defaults to "my_ducklake"}
+\item{.quiet}{Logical, whether to suppress debug output (default FALSE for backward compatibility)}
 }
 \value{
-A string containing the DuckLake UPDATE statement
+A SQL statement string
 }
 \description{
-Convert a dplyr SELECT query to a DuckLake UPDATE statement
-}
-\examples{
-\dontrun{
-# Create a dplyr query
-train_file |>
-  mutate(
-    name_long = case_when(
-      code == "ASB" ~ "Johan Cruijff ArenA",
-      .default = name_long
-    )
-  ) |>
-  update_table("nl_train_stations", ducklake_name = "my_ducklake") |>
-  duckplyr::db_exec()
-}
+Convert a dplyr query to DuckLake SQL operations
 }

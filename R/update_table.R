@@ -1,57 +1,132 @@
-#' Convert a dplyr SELECT query to a DuckLake UPDATE statement
+#' Convert a dplyr query to DuckLake SQL operations
 #'
-#' @param query A dplyr query object that can be passed to show_query()
-#' @param table_name The name of the table to update
-#' @param ducklake_name The name of the DuckLake database, defaults to "my_ducklake"
+#' @param .data A dplyr query object (tbl_lazy)
+#' @param table_name Table name (required when using update_table)
+#' @param .quiet Logical, whether to suppress debug output (default FALSE for backward compatibility)
 #'
-#' @return A string containing the DuckLake UPDATE statement
+#' @return A SQL statement string
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' # Create a dplyr query
-#' train_file |>
-#'   mutate(
-#'     name_long = case_when(
-#'       code == "ASB" ~ "Johan Cruijff ArenA",
-#'       .default = name_long
-#'     )
-#'   ) |>
-#'   update_table("nl_train_stations", ducklake_name = "my_ducklake") |>
-#'   duckplyr::db_exec()
-#' }
-update_table <- function(query, table_name, ducklake_name = "my_ducklake") {
-  # Capture the SQL from show_query
-  sql_query <- capture.output(dplyr::show_query(query))
-  sql_query <- paste(sql_query, collapse = "\n")
-  # Remove <SQL> tag if present
-  sql_query <- gsub("<SQL>", "", sql_query)
+update_table <- function(.data, table_name, .quiet = FALSE) {
 
-  # Start building the UPDATE statement with schema
-  update_sql <- paste("UPDATE", paste0(ducklake_name, ".", table_name), "SET")
-  
-  # Process the SELECT query:
-  # 1. Remove SELECT keyword and newlines
-  sql_query <- gsub("^\\s*SELECT\\s+", "", sql_query) |>
-    gsub("\\s*\\n\\s*", " ", x = _)
-    
-  # 2. Handle CASE WHEN expressions first
-  sql_query <- gsub("(CASE WHEN .+? END) AS ([[:alnum:]_]+)", "\\2 = \\1", sql_query)
-  
-  # 3. Handle regular columns
-  sql_query <- gsub("([[:alnum:]_\"]+)(,|\\s+FROM|$)", "\\1 = \\1\\2", sql_query)
-  
-  # 4. Remove any duplicate END assignments
-  sql_query <- gsub("END = END", "END", sql_query)
-  
-  # 5. Remove the FROM clause
-  sql_query <- gsub("\\s+FROM.*$", "", sql_query)
-  
-  # Combine and clean up
-  sql <- paste(update_sql, sql_query) |>
-    gsub("\\s+", " ", x = _) |>     # normalize spaces
-    gsub(",\\s*$", "", x = _) |>    # remove trailing comma
-    trimws()
-  
-  sql
+  if (!.quiet) {
+    cat("=== DEBUG: update_table called ===\n")
+    cat("Query class:", class(.data), "\n")
+    cat("Target table:", table_name, "\n")
+  }
+
+  tryCatch({
+    if (!.quiet) cat("=== DEBUG: Getting SQL directly ===\n")
+
+    # Get the SQL
+    temp_file <- tempfile()
+    sink(temp_file)
+    dplyr::show_query(.data)
+    sink()
+
+    temp_sql <- readLines(temp_file)
+    unlink(temp_file)
+
+    if (!.quiet) cat("Raw SQL lines:", length(temp_sql), "\n")
+
+    if (length(temp_sql) == 0) {
+      stop("No SQL content extracted")
+    }
+
+    combined_sql <- paste(temp_sql, collapse = " ")
+    combined_sql <- gsub("<SQL>", "", combined_sql)
+    combined_sql <- gsub("^\\s*", "", combined_sql)
+    combined_sql <- gsub("\\s*$", "", combined_sql)
+    combined_sql <- gsub("\\s+", " ", combined_sql)
+
+    if (!.quiet) cat("Cleaned SQL:", combined_sql, "\n")
+
+    # Determine operation type
+    has_where <- grepl("WHERE", combined_sql)
+    has_case_when <- grepl("CASE WHEN", combined_sql)
+    has_select_star <- grepl("SELECT\\s+[^,]*\\*", combined_sql)
+
+    if (!.quiet) {
+      cat("SQL analysis - has_where:", has_where, "has_case_when:", has_case_when,
+          "has_select_star:", has_select_star, "\n")
+    }
+
+    # Operation detection
+    if (has_where && has_select_star) {
+      operation_type <- "delete"
+    } else if (has_case_when) {
+      operation_type <- "update"
+    } else if (has_where && !has_select_star) {
+      operation_type <- "delete"
+    } else {
+      operation_type <- "insert"
+    }
+
+    if (!.quiet) cat("Operation type:", operation_type, "\n")
+
+    # Generate SQL
+    if (operation_type == "delete") {
+      where_part <- gsub(".*WHERE\\s+(.+)", "\\1", combined_sql)
+      if (!.quiet) cat("Extracted WHERE part:", where_part, "\n")
+
+      result_sql <- sprintf("DELETE FROM %s WHERE NOT (%s)", table_name, where_part)
+    } else if (operation_type == "update") {
+      assignments <- extract_assignments_from_sql(combined_sql)
+      if (!.quiet) cat("Extracted assignments:", assignments, "\n")
+
+      result_sql <- sprintf("UPDATE %s SET %s", table_name, assignments)
+
+      if (has_where) {
+        where_part <- gsub(".*WHERE\\s+(.+)", "\\1", combined_sql)
+        result_sql <- paste(result_sql, "WHERE", where_part)
+      }
+    } else {
+      result_sql <- sprintf("INSERT INTO %s %s", table_name, combined_sql)
+    }
+
+    if (!.quiet) cat("Generated SQL:", result_sql, "\n")
+    return(result_sql)
+
+  }, error = function(e) {
+    stop("Failed to generate DuckLake SQL: ", e$message)
+  })
+}
+
+#' Extract column assignments from SQL SELECT statement
+#'
+#' @param sql_text A SQL SELECT statement
+#' @return A string of comma-separated column assignments for UPDATE SET clause
+#' @keywords internal
+extract_assignments_from_sql <- function(sql_text) {
+  select_part <- gsub("SELECT\\s+(.+?)\\s+FROM.*", "\\1", sql_text, perl = TRUE)
+
+  columns <- strsplit(select_part, ",")[[1]]
+  columns <- trimws(columns)
+
+  assignments <- c()
+
+  for (col in columns) {
+    col <- trimws(col)
+
+    if (grepl("CASE WHEN.*END AS", col)) {
+      # Extract column name and CASE expression
+      col_name <- gsub(".*AS\\s+([[:alnum:]_\"]+)$", "\\1", col)
+      col_name <- gsub('"', '', col_name)  # Remove quotes
+      case_expr <- gsub("(.+?)\\s+AS\\s+[[:alnum:]_\"]+$", "\\1", col)
+      assignments <- c(assignments, paste0(col_name, " = ", case_expr))
+
+    } else if (grepl("AS\\s+([[:alnum:]_\"]+)$", col)) {
+      # Regular expression with AS
+      col_name <- gsub(".*AS\\s+([[:alnum:]_\"]+)$", "\\1", col)
+      col_name <- gsub('"', '', col_name)
+      expr <- gsub("(.+?)\\s+AS\\s+[[:alnum:]_\"]+$", "\\1", col)
+      assignments <- c(assignments, paste0(col_name, " = ", expr))
+    }
+    # Skip simple column references (they don't need assignments)
+  }
+
+  if (length(assignments) == 0) {
+    stop("No column assignments found for UPDATE operation")
+  }
+
+  paste(assignments, collapse = ", ")
 }
