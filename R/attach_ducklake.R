@@ -13,7 +13,7 @@ attach_ducklake <- function(ducklake_name, data_path = NULL) {
   if (is.null(data_path)) {
     duckplyr::db_exec(sprintf("ATTACH 'ducklake:%s.ducklake' AS %s;", ducklake_name, ducklake_name))
   } else {
-    duckplyr::db_exec(sprintf("ATTACH 'ducklake:%s.ducklake' AS %s; (DATA_PATH '%s')", ducklake_name, ducklake_name, data_path))
+    duckplyr::db_exec(sprintf("ATTACH 'ducklake:%s.ducklake' AS %s (DATA_PATH '%s');", ducklake_name, ducklake_name, data_path))
   }
 
   #TODO: see if this should really go here, or if USE should be a standalone function (I suspect yes)
