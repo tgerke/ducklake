@@ -65,22 +65,20 @@ dplyr::rows_update(
   unmatched = "ignore"
 )
 
-# test mutate using ducklake::update_table
+# test mutate using ducklake::ducklake_exec
 dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
-   dplyr::mutate(
-     name_long = case_when(
-       code == "ASB" ~ "Johan Cruijff ArenA",
-       .default = name_long
-     )
-   ) |>
-  update_table("nl_train_stations") |>
-  duckplyr::db_exec()
+  dplyr::mutate(
+    name_long = dplyr::case_when(
+      code == "ASB" ~ "Johan Cruijff ArenA",
+      .default = name_long
+    )
+  ) |>
+  ducklake_exec("nl_train_stations")
 
-# test filter using ducklake::update_table
-dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |> 
-  filter(uic == 8400319 | code == "ASB") |> 
-  update_table("nl_train_stations") |>
-  duckplyr::db_exec()
+# test filter using ducklake::ducklake_exec
+dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+  dplyr::filter(uic == 8400319 | code == "ASB") |>
+  ducklake_exec("nl_train_stations")
 
 # view snapshots
 dplyr::tbl(
@@ -95,6 +93,5 @@ dplyr::tbl(
 # check that the change is persisted
 suppressMessages(library(duckplyr))
 
-read_sql_duckdb("FROM nl_train_stations") 
+duckplyr::read_sql_duckdb("FROM nl_train_stations") 
 ```
-
