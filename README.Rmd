@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 knitr::opts_knit$set(root.dir = tempdir())  # Only affects code execution, not output
 ```
 
-# ducklake <a href="https://github.com/tgerke/ducklake"><img src="man/figures/ducklake-hex.jpg" align="right" height="138" /></a>
+# ducklake <a href="https://github.com/tgerke/ducklake-r"><img src="man/figures/ducklake-hex.jpg" align="right" height="138" /></a>
 
 ducklake is an R package which complements the existing toolkits in the [duckdb](https://r.duckdb.org/index.html) and [duckplyr](https://duckplyr.tidyverse.org/index.html) packages, in order to support the new [DuckLake](https://ducklake.select/docs/stable/duckdb/introduction.html) ecosystem.
 
@@ -23,7 +23,7 @@ ducklake is an R package which complements the existing toolkits in the [duckdb]
 Install the development version of ducklake with
 
 ``` r
-pak::pak("tgerke/ducklake")
+pak::pak("tgerke/ducklake-r")
 ```
 
 ## Create a local duckdb lakehouse

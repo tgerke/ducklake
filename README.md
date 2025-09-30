@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# ducklake <a href="https://github.com/tgerke/ducklake"><img src="man/figures/ducklake-hex.jpg" align="right" height="138" /></a>
+# ducklake <a href="https://github.com/tgerke/ducklake-r"><img src="man/figures/ducklake-hex.jpg" align="right" height="138" /></a>
 
 ducklake is an R package which complements the existing toolkits in the
 [duckdb](https://r.duckdb.org/index.html) and
@@ -15,7 +15,7 @@ ecosystem.
 Install the development version of ducklake with
 
 ``` r
-pak::pak("tgerke/ducklake")
+pak::pak("tgerke/ducklake-r")
 ```
 
 ## Create a local duckdb lakehouse
@@ -47,7 +47,7 @@ list.files()
 #> [3] "my_ducklake.ducklake.files" "my_ducklake.ducklake.wal"
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
-#> [1] "ducklake-01999899-85a7-70f3-b641-6f248e682c6c.parquet"
+#> [1] "ducklake-01999b27-a181-7a61-b74a-ab2bc63bd826.parquet"
 
 # update the first row
 dplyr::rows_update(
@@ -85,7 +85,7 @@ dplyr::tbl(
   "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
 )
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmplc9imA/duckplyr/duckplyr119941f1de01c.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpD5lSHz/duckplyr/duckplyr13db97be667ec.duckdb]
 #>   snapshot_id changes_made               author commit_message commit_extra_info
 #>         <dbl> <chr>                      <chr>  <chr>          <chr>            
 #> 1           0 "created_schema:\"main\""  <NA>   <NA>           <NA>             
@@ -98,14 +98,14 @@ dplyr::tbl(
   "__ducklake_metadata_my_ducklake.ducklake_snapshot"
 )
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmplc9imA/duckplyr/duckplyr119941f1de01c.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpD5lSHz/duckplyr/duckplyr13db97be667ec.duckdb]
 #>   snapshot_id snapshot_time       schema_version next_catalog_id next_file_id
 #>         <dbl> <dttm>                       <dbl>           <dbl>        <dbl>
-#> 1           0 2025-09-30 03:10:21              0               1            0
-#> 2           1 2025-09-30 03:10:21              1               2            1
-#> 3           2 2025-09-30 03:10:22              1               2            3
-#> 4           3 2025-09-30 03:10:22              1               2            4
-#> 5           4 2025-09-30 03:10:22              1               2            5
+#> 1           0 2025-09-30 15:04:48              0               1            0
+#> 2           1 2025-09-30 15:04:49              1               2            1
+#> 3           2 2025-09-30 15:04:49              1               2            3
+#> 4           3 2025-09-30 15:04:49              1               2            4
+#> 5           4 2025-09-30 15:04:50              1               2            5
 
 # check that the change is persisted
 suppressMessages(library(duckplyr))
