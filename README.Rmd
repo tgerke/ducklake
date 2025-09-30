@@ -50,7 +50,7 @@ list.files("my_ducklake.ducklake.files/main/nl_train_stations")
 
 # update the first row with dplyr::rows_update
 rows_update(
-  tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations"),
+  get_ducklake_table("nl_train_stations"),
   data.frame(
     uic = 8400319,
     name_short = "NEW"
@@ -62,7 +62,7 @@ rows_update(
 )
 
 # update with mutate and ducklake::ducklake_exec
-tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+get_ducklake_table("nl_train_stations") |>
   mutate(
     name_long = dplyr::case_when(
       code == "ASB" ~ "Johan Cruijff ArenA",
@@ -72,19 +72,19 @@ tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
   ducklake_exec("nl_train_stations")
 
 # filter using ducklake::ducklake_exec
-tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+get_ducklake_table("nl_train_stations") |>
   filter(uic == 8400319 | code == "ASB") |>
   ducklake_exec("nl_train_stations")
 
-# view snapshots
-tbl(
-  duckplyr:::get_default_duckdb_connection(), 
-  "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
-)
-tbl(
-  duckplyr:::get_default_duckdb_connection(), 
-  "__ducklake_metadata_my_ducklake.ducklake_snapshot"
-)
+# show our current table
+get_ducklake_table("nl_train_stations")
 
-duckplyr::read_sql_duckdb("FROM nl_train_stations") 
+# List all tables in the lake
+get_ducklake_table("duckdb_tables") |> 
+  select(database_name, schema_name, table_name) |> 
+  print(n = Inf)
+
+# view snapshots
+get_ducklake_table("__ducklake_metadata_my_ducklake.ducklake_snapshot_changes")
+get_ducklake_table("__ducklake_metadata_my_ducklake.ducklake_snapshot")
 ```
