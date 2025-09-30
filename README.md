@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# ducklake
+# ducklake <a href="https://github.com/tgerke/ducklake"><img src="man/figures/ducklake-hex.jpg" align="right" height="138" /></a>
 
 ducklake is an R package which complements the existing toolkits in the
 [duckdb](https://r.duckdb.org/index.html) and
@@ -26,7 +26,6 @@ library(ducklake)
 # install the ducklake extension to duckdb 
 # requires that you already have DuckDB v1.3.0 or higher
 install_ducklake()
-#> [1] 0
 
 # set up a temporary directory to demonstrate use
 temp_dir <- tempdir()
@@ -35,7 +34,6 @@ setwd(temp_dir)
 
 # create the ducklake
 attach_ducklake("my_ducklake")
-#> [1] 0
 # show that we have ducklake files
 list.files()
 #> [1] "duckplyr"                 "my_ducklake.ducklake"    
@@ -43,14 +41,13 @@ list.files()
 
 # create a table using the Netherlands train traffic dataset 
 create_table("nl_train_stations", "https://blobs.duckdb.org/nl_stations.csv")
-#> [1] 578
 # show that we now have a .files directory
 list.files()
 #> [1] "duckplyr"                   "my_ducklake.ducklake"      
 #> [3] "my_ducklake.ducklake.files" "my_ducklake.ducklake.wal"
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
-#> [1] "ducklake-019987ba-2a56-7c53-902e-2e14a7fc9ed4.parquet"
+#> [1] "ducklake-01999899-85a7-70f3-b641-6f248e682c6c.parquet"
 
 # update the first row
 dplyr::rows_update(
@@ -87,28 +84,28 @@ dplyr::tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
 )
-#> # Source:   SQL [?? x 2]
-#> # Database: DuckDB v1.3.2 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpQSowMH/duckplyr/duckplyrcc4d438df712.duckdb]
-#>   snapshot_id changes_made                                                      
-#>         <dbl> <chr>                                                             
-#> 1           0 "created_schema:\"main\""                                         
-#> 2           1 "created_table:\"main\".\"nl_train_stations\",inserted_into_table…
-#> 3           2 "inserted_into_table:1,deleted_from_table:1"                      
-#> 4           3 "inserted_into_table:1,deleted_from_table:1"                      
-#> 5           4 "deleted_from_table:1"
+#> # Source:   SQL [?? x 5]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmplc9imA/duckplyr/duckplyr119941f1de01c.duckdb]
+#>   snapshot_id changes_made               author commit_message commit_extra_info
+#>         <dbl> <chr>                      <chr>  <chr>          <chr>            
+#> 1           0 "created_schema:\"main\""  <NA>   <NA>           <NA>             
+#> 2           1 "created_table:\"main\".\… <NA>   <NA>           <NA>             
+#> 3           2 "inserted_into_table:1,de… <NA>   <NA>           <NA>             
+#> 4           3 "inserted_into_table:1,de… <NA>   <NA>           <NA>             
+#> 5           4 "deleted_from_table:1"     <NA>   <NA>           <NA>
 dplyr::tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot"
 )
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB v1.3.2 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpQSowMH/duckplyr/duckplyrcc4d438df712.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmplc9imA/duckplyr/duckplyr119941f1de01c.duckdb]
 #>   snapshot_id snapshot_time       schema_version next_catalog_id next_file_id
 #>         <dbl> <dttm>                       <dbl>           <dbl>        <dbl>
-#> 1           0 2025-09-26 20:32:27              0               1            0
-#> 2           1 2025-09-26 20:32:28              1               2            1
-#> 3           2 2025-09-26 20:32:28              1               2            3
-#> 4           3 2025-09-26 20:32:28              1               2            4
-#> 5           4 2025-09-26 20:32:28              1               2            5
+#> 1           0 2025-09-30 03:10:21              0               1            0
+#> 2           1 2025-09-30 03:10:21              1               2            1
+#> 3           2 2025-09-30 03:10:22              1               2            3
+#> 4           3 2025-09-30 03:10:22              1               2            4
+#> 5           4 2025-09-30 03:10:22              1               2            5
 
 # check that the change is persisted
 suppressMessages(library(duckplyr))
