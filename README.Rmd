@@ -28,17 +28,13 @@ pak::pak("tgerke/ducklake-r")
 
 ## Create a local duckdb lakehouse
 
-```{r example}
+```{r example, message=FALSE}
 library(ducklake)
+library(dplyr)
 
 # install the ducklake extension to duckdb 
 # requires that you already have DuckDB v1.3.0 or higher
 install_ducklake()
-
-# set up a temporary directory to demonstrate use
-temp_dir <- tempdir()
-# haha Jenny Bryan is going to set my computer on fire
-setwd(temp_dir)
 
 # create the ducklake
 attach_ducklake("my_ducklake")
@@ -52,9 +48,9 @@ list.files()
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
 
-# update the first row
-dplyr::rows_update(
-  dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations"),
+# update the first row with dplyr::rows_update
+rows_update(
+  tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations"),
   data.frame(
     uic = 8400319,
     name_short = "NEW"
@@ -65,9 +61,9 @@ dplyr::rows_update(
   unmatched = "ignore"
 )
 
-# test mutate using ducklake::ducklake_exec
-dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
-  dplyr::mutate(
+# update with mutate and ducklake::ducklake_exec
+tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+  mutate(
     name_long = dplyr::case_when(
       code == "ASB" ~ "Johan Cruijff ArenA",
       .default = name_long
@@ -75,23 +71,20 @@ dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
   ) |>
   ducklake_exec("nl_train_stations")
 
-# test filter using ducklake::ducklake_exec
-dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
-  dplyr::filter(uic == 8400319 | code == "ASB") |>
+# filter using ducklake::ducklake_exec
+tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+  filter(uic == 8400319 | code == "ASB") |>
   ducklake_exec("nl_train_stations")
 
 # view snapshots
-dplyr::tbl(
+tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
 )
-dplyr::tbl(
+tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot"
 )
-
-# check that the change is persisted
-suppressMessages(library(duckplyr))
 
 duckplyr::read_sql_duckdb("FROM nl_train_stations") 
 ```

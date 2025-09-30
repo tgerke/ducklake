@@ -22,15 +22,11 @@ pak::pak("tgerke/ducklake-r")
 
 ``` r
 library(ducklake)
+library(dplyr)
 
 # install the ducklake extension to duckdb 
 # requires that you already have DuckDB v1.3.0 or higher
 install_ducklake()
-
-# set up a temporary directory to demonstrate use
-temp_dir <- tempdir()
-# haha Jenny Bryan is going to set my computer on fire
-setwd(temp_dir)
 
 # create the ducklake
 attach_ducklake("my_ducklake")
@@ -47,11 +43,11 @@ list.files()
 #> [3] "my_ducklake.ducklake.files" "my_ducklake.ducklake.wal"
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
-#> [1] "ducklake-01999b27-a181-7a61-b74a-ab2bc63bd826.parquet"
+#> [1] "ducklake-01999c1b-cc3a-79b8-908a-e47e036a9b72.parquet"
 
-# update the first row
-dplyr::rows_update(
-  dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations"),
+# update the first row with dplyr::rows_update
+rows_update(
+  tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations"),
   data.frame(
     uic = 8400319,
     name_short = "NEW"
@@ -62,9 +58,9 @@ dplyr::rows_update(
   unmatched = "ignore"
 )
 
-# test mutate using ducklake::ducklake_exec
-dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
-  dplyr::mutate(
+# update with mutate and ducklake::ducklake_exec
+tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+  mutate(
     name_long = dplyr::case_when(
       code == "ASB" ~ "Johan Cruijff ArenA",
       .default = name_long
@@ -73,19 +69,19 @@ dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
   ducklake_exec("nl_train_stations")
 #> [1] 578
 
-# test filter using ducklake::ducklake_exec
-dplyr::tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
-  dplyr::filter(uic == 8400319 | code == "ASB") |>
+# filter using ducklake::ducklake_exec
+tbl(duckplyr:::get_default_duckdb_connection(), "nl_train_stations") |>
+  filter(uic == 8400319 | code == "ASB") |>
   ducklake_exec("nl_train_stations")
 #> [1] 576
 
 # view snapshots
-dplyr::tbl(
+tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot_changes"
 )
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpD5lSHz/duckplyr/duckplyr13db97be667ec.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpWGFFQ4/duckplyr/duckplyr16bb428bc63b9.duckdb]
 #>   snapshot_id changes_made               author commit_message commit_extra_info
 #>         <dbl> <chr>                      <chr>  <chr>          <chr>            
 #> 1           0 "created_schema:\"main\""  <NA>   <NA>           <NA>             
@@ -93,22 +89,19 @@ dplyr::tbl(
 #> 3           2 "inserted_into_table:1,de… <NA>   <NA>           <NA>             
 #> 4           3 "inserted_into_table:1,de… <NA>   <NA>           <NA>             
 #> 5           4 "deleted_from_table:1"     <NA>   <NA>           <NA>
-dplyr::tbl(
+tbl(
   duckplyr:::get_default_duckdb_connection(), 
   "__ducklake_metadata_my_ducklake.ducklake_snapshot"
 )
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpD5lSHz/duckplyr/duckplyr13db97be667ec.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpWGFFQ4/duckplyr/duckplyr16bb428bc63b9.duckdb]
 #>   snapshot_id snapshot_time       schema_version next_catalog_id next_file_id
 #>         <dbl> <dttm>                       <dbl>           <dbl>        <dbl>
-#> 1           0 2025-09-30 15:04:48              0               1            0
-#> 2           1 2025-09-30 15:04:49              1               2            1
-#> 3           2 2025-09-30 15:04:49              1               2            3
-#> 4           3 2025-09-30 15:04:49              1               2            4
-#> 5           4 2025-09-30 15:04:50              1               2            5
-
-# check that the change is persisted
-suppressMessages(library(duckplyr))
+#> 1           0 2025-09-30 19:31:30              0               1            0
+#> 2           1 2025-09-30 19:31:31              1               2            1
+#> 3           2 2025-09-30 19:31:31              1               2            3
+#> 4           3 2025-09-30 19:31:31              1               2            4
+#> 5           4 2025-09-30 19:31:31              1               2            5
 
 duckplyr::read_sql_duckdb("FROM nl_train_stations") 
 #> # A duckplyr data frame: 11 variables
