@@ -35,22 +35,24 @@
 ducklake_exec <- function(.data, table_name, .quiet = TRUE) {
 
   if (!.quiet) {
-    cat("=== DuckLake Operation ===\n")
-    cat("Target table:", table_name, "\n")
+    # Show the original dplyr SQL
+    cat("\n=== Original dplyr SQL ===\n")
+    print(dplyr::show_query(.data))
   }
 
-  # Generate the SQL using update_table
-  sql_string <- update_table(.data, table_name, .quiet = .quiet)
+  # Generate the DuckLake SQL using update_table
+  sql_string <- update_table(.data, table_name, .quiet = TRUE)
 
   if (!.quiet) {
-    cat("Executing SQL:", sql_string, "\n")
+    cat("\n=== Translated DuckLake SQL ===\n")
+    cat(sql_string, "\n")
   }
 
   # Execute and return result
   result <- duckplyr::db_exec(sql_string)
 
   if (!.quiet) {
-    cat("Operation completed. Rows affected:", result, "\n")
+    cat("\nRows affected:", result, "\n")
   }
 
   return(result)
