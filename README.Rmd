@@ -28,7 +28,7 @@ pak::pak("tgerke/ducklake-r")
 
 ## Create a local duckdb lakehouse
 
-```{r example, message=FALSE}
+```{r create, message=FALSE}
 library(ducklake)
 library(dplyr)
 
@@ -47,7 +47,11 @@ create_table("nl_train_stations", "https://blobs.duckdb.org/nl_stations.csv")
 list.files()
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
+```
 
+## Update tables
+
+```{r update}
 # update the first row with dplyr::rows_update
 rows_update(
   get_ducklake_table("nl_train_stations"),
@@ -78,13 +82,17 @@ get_ducklake_table("nl_train_stations") |>
 
 # show our current table
 get_ducklake_table("nl_train_stations")
+```
 
+## View metadata and snapshots
+
+```{r metadata}
 # List all tables in the lake
 get_ducklake_table("duckdb_tables") |> 
   select(database_name, schema_name, table_name) |> 
   print(n = Inf)
 
-# view snapshots
+# View snapshot history
 get_metadata_table("ducklake_snapshot_changes", ducklake_name = "my_ducklake")
 get_metadata_table("ducklake_snapshot", ducklake_name = "my_ducklake")
 ```

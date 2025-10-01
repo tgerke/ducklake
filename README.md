@@ -43,8 +43,12 @@ list.files()
 #> [3] "my_ducklake.ducklake.files" "my_ducklake.ducklake.wal"
 # main/ is where the parquet files go
 list.files("my_ducklake.ducklake.files/main/nl_train_stations")
-#> [1] "ducklake-01999d1a-4c90-73f1-a512-a9c8dbd1ba7f.parquet"
+#> [1] "ducklake-01999d1c-4218-7c9c-a828-ec541201ec06.parquet"
+```
 
+## Update tables
+
+``` r
 # update the first row with dplyr::rows_update
 rows_update(
   get_ducklake_table("nl_train_stations"),
@@ -78,19 +82,23 @@ get_ducklake_table("nl_train_stations") |>
 # show our current table
 get_ducklake_table("nl_train_stations")
 #> # Source:   table<nl_train_stations> [?? x 11]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpWNqfn2/duckplyr/duckplyr182860eced13.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmp05uMlX/duckplyr/duckplyr18f260c63904.duckdb]
 #>      id code      uic name_short name_medium      name_long  slug  country type 
 #>   <dbl> <chr>   <dbl> <chr>      <chr>            <chr>      <chr> <chr>   <chr>
 #> 1   266 HT    8400319 NEW        's-Hertogenbosch 's-Hertog… s-he… NL      knoo…
 #> 2    41 ASB   8400074 Bijlmer A  Bijlmer ArenA    Johan Cru… amst… NL      knoo…
 #> # ℹ 2 more variables: geo_lat <dbl>, geo_lng <dbl>
+```
 
+## View metadata and snapshots
+
+``` r
 # List all tables in the lake
 get_ducklake_table("duckdb_tables") |> 
   select(database_name, schema_name, table_name) |> 
   print(n = Inf)
 #> # Source:   SQL [?? x 3]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpWNqfn2/duckplyr/duckplyr182860eced13.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmp05uMlX/duckplyr/duckplyr18f260c63904.duckdb]
 #>    database_name                   schema_name table_name                       
 #>    <chr>                           <chr>       <chr>                            
 #>  1 __ducklake_metadata_my_ducklake main        ducklake_column                  
@@ -116,12 +124,12 @@ get_ducklake_table("duckdb_tables") |>
 #> 21 __ducklake_metadata_my_ducklake main        ducklake_tag                     
 #> 22 __ducklake_metadata_my_ducklake main        ducklake_view                    
 #> 23 my_ducklake                     main        nl_train_stations                
-#> 24 temp                            main        dbplyr_3lQmlNujxc
+#> 24 temp                            main        dbplyr_RPHhPPkWtk
 
-# view snapshots
+# View snapshot history
 get_metadata_table("ducklake_snapshot_changes", ducklake_name = "my_ducklake")
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpWNqfn2/duckplyr/duckplyr182860eced13.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmp05uMlX/duckplyr/duckplyr18f260c63904.duckdb]
 #>   snapshot_id changes_made               author commit_message commit_extra_info
 #>         <dbl> <chr>                      <chr>  <chr>          <chr>            
 #> 1           0 "created_schema:\"main\""  <NA>   <NA>           <NA>             
@@ -131,12 +139,12 @@ get_metadata_table("ducklake_snapshot_changes", ducklake_name = "my_ducklake")
 #> 5           4 "deleted_from_table:1"     <NA>   <NA>           <NA>
 get_metadata_table("ducklake_snapshot", ducklake_name = "my_ducklake")
 #> # Source:   SQL [?? x 5]
-#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/RtmpWNqfn2/duckplyr/duckplyr182860eced13.duckdb]
+#> # Database: DuckDB 1.4.0 [tgerke@Darwin 23.6.0:R 4.5.1//private/var/folders/b7/664jmq55319dcb7y4jdb39zr0000gq/T/Rtmp05uMlX/duckplyr/duckplyr18f260c63904.duckdb]
 #>   snapshot_id snapshot_time       schema_version next_catalog_id next_file_id
 #>         <dbl> <dttm>                       <dbl>           <dbl>        <dbl>
-#> 1           0 2025-10-01 00:09:29              0               1            0
-#> 2           1 2025-10-01 00:09:30              1               2            1
-#> 3           2 2025-10-01 00:09:30              1               2            3
-#> 4           3 2025-10-01 00:09:30              1               2            4
-#> 5           4 2025-10-01 00:09:30              1               2            5
+#> 1           0 2025-10-01 00:11:38              0               1            0
+#> 2           1 2025-10-01 00:11:38              1               2            1
+#> 3           2 2025-10-01 00:11:39              1               2            3
+#> 4           3 2025-10-01 00:11:39              1               2            4
+#> 5           4 2025-10-01 00:11:39              1               2            5
 ```
