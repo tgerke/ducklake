@@ -85,6 +85,6 @@ get_ducklake_table("duckdb_tables") |>
   print(n = Inf)
 
 # view snapshots
-get_ducklake_table("__ducklake_metadata_my_ducklake.ducklake_snapshot_changes")
-get_ducklake_table("__ducklake_metadata_my_ducklake.ducklake_snapshot")
+get_metadata_table("ducklake_snapshot_changes", ducklake_name = "my_ducklake")
+get_metadata_table("ducklake_snapshot", ducklake_name = "my_ducklake")
 ```
